@@ -1,0 +1,94 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>4 Video Grid AVPlay</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="video1" class="video-box"></div>
+  <div id="video2" class="video-box"></div>
+  <div id="video3" class="video-box"></div>
+  <div id="video4" class="video-box"></div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
+
+/* css/style.css */
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: black;
+}
+
+.video-box {
+  position: absolute;
+  width: 50vw;
+  height: 50vh;
+}
+
+#video1 { top: 0; left: 0; }
+#video2 { top: 0; left: 50vw; }
+#video3 { top: 50vh; left: 0; }
+#video4 { top: 50vh; left: 50vw; }
+
+// js/main.js
+var PackageId = tizen.application.getCurrentApplication().appInfo.packageId;
+var sharedDir = tizen.application.getAppSharedURI(PackageId);
+var pathApp = sharedDir + '../res/wgt/video/';
+
+var videoFiles = ['video1.mp4', 'video2.mp4', 'video3.mp4', 'video4.mp4'];
+var videoUrls = videoFiles.map(f => pathApp + f);
+
+var players = [];
+var listeners = [];
+
+function createListener(index) {
+  return {
+    onbufferingstart: () => console.log(`Player ${index} buffering start.`),
+    onbufferingprogress: (p) => console.log(`Player ${index} buffering: ${p}%`),
+    onbufferingcomplete: () => console.log(`Player ${index} buffering complete.`),
+    onstreamcompleted: () => players[index].stop(),
+    onevent: (type, data) => console.log(`Player ${index} event: ${type}, data: ${data}`),
+    onerror: (type) => console.error(`Player ${index} error: ${type}`)
+  };
+}
+
+function createPlayer(index, x, y, w, h) {
+  const player = webapis.avplaystore.getPlayer();
+  players[index] = player;
+  listeners[index] = createListener(index);
+
+  player.open(videoUrls[index]);
+  player.setListener(listeners[index]);
+  player.setStreamingProperty('USE_VIDEOMIXER', '');
+  player.setDisplayRect(x, y, w, h);
+  player.prepare();
+  player.setStreamingProperty('SET_MIXEDFRAME', '');
+  player.play();
+}
+
+window.onload = () => {
+  // Assuming full HD 1920x1080 resolution
+  const w = 960, h = 540;
+  createPlayer(0, 0, 0, w, h);        // Top Left
+  createPlayer(1, 960, 0, w, h);     // Top Right
+  createPlayer(2, 0, 540, w, h);     // Bottom Left
+  createPlayer(3, 960, 540, w, h);   // Bottom Right
+};
+
+<!-- config.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" id="http://yourdomain.com/4video" version="1.0.0" viewmodes="maximized">
+  <content src="index.html" />
+  <access origin="*" />
+  <feature name="http://tizen.org/feature/multimedia.video.avplay" />
+  <feature name="http://tizen.org/api/application" />
+  <feature name="http://tizen.org/api/filesystem" />
+  <icon src="icon.png" />
+  <tizen:application id="yourAppId.4video" package="yourAppPkg" required_version="4.0" />
+  <tizen:privilege name="http://tizen.org/privilege/application.info" />
+  <tizen:privilege name="http://tizen.org/privilege/filesystem.read" />
+</widget>
